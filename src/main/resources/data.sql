@@ -22,7 +22,3 @@ INSERT INTO REGISTRO_PERDA (pet_id,data_perda,local_perda,latitude,longitude,det
 	 (2,'1777777200000','Vila nova cachoeirinha',NULL,NULL,NULL,'loro papagaio real verde amarelo vermelho azul e etc vila nova cachoeirinha'),
 	 (3,'1776049200000','Esquina da Rua Nova York com Av Aurora',NULL,NULL,NULL,'danger cao dobermann preto e marrom esquina da rua nova york com av aurora'),
 	 (4,'1760065200000','Voou pela janela do edificio Yotk Shine',NULL,NULL,NULL,'pirulito ave voou pela janela do edificio yotk shine');
-
-UPDATE sqlite_sequence SET seq = 13 WHERE name = 'ESPECIE';
-UPDATE sqlite_sequence SET seq = 26 WHERE name = 'PET';
-UPDATE sqlite_sequence SET seq = 103 WHERE name = 'REGISTRO_PERDA';

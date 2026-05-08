@@ -1,4 +1,5 @@
 package com.example.pet;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -6,18 +7,20 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
-import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.web.bind.annotation.ResponseBody;
 import com.example.pet.DTO.*;
-import com.example.pet.Entities.*;
-import com.example.pet.Factories.PetFactory;
+import com.example.pet.Data.RegistroPerdaData;
+import com.example.pet.Services.*;
 
 @Controller
 @CrossOrigin(origins = "*")
 public class PetController {
+
+	@Autowired
+    private PetDataService petDataService;
 
     private final String UPLOAD_DIR = System.getProperty("user.dir")
     										.replace("/target", "") + "/uploads/";
@@ -26,14 +29,19 @@ public class PetController {
     public String index(Model model) {
         File dir = new File(UPLOAD_DIR);
         if (!dir.exists()) dir.mkdirs();
-
+        
+        model.addAttribute("especies", petDataService.buscarTodasAsEspecies());
+        
         try (var stream = Files.list(Paths.get(UPLOAD_DIR))) {
             List<String> arquivos = stream
                     .map(path -> path.getFileName().toString())
                     .collect(Collectors.toList());
-            model.addAttribute("arquivos", arquivos);
+            model.addAttribute("arquivos", arquivos);          
+            model.addAttribute("dadosPerdas", petDataService.buscarTodasAsPerdas());
+            
         } catch (Exception e) {
             model.addAttribute("arquivos", Collections.emptyList());
+            model.addAttribute("dadosPerdas", Collections.emptyList());
         }
         return "index";
     }
@@ -45,32 +53,21 @@ public class PetController {
 
         if (!imagem.isEmpty()) {
         	
-        	  	// 1. A Factory resolve a complexidade da herança
-            Pet petReal = PetFactory.criarPet(dto);
-
-            // 2. Cria a associação (Entity)
-            RegistroPerda registro = new RegistroPerda(
-                petReal, 
-                dto.getLocal(), 
-                LocalDate.parse(dto.getDataOcorrido()), 
-                dto.getDescricao()
-            );
-            
+           	RegistroPerdaData novaPerda = petDataService.registrarPerda(dto);
+        	
             // Pega a extensão original (ex: .jpg)
             String originalName = imagem.getOriginalFilename();
             String extensao = originalName.substring(originalName.lastIndexOf("."));
 
             // Novo nome: [nome]_[data]_[local].ext
-            String novoNome = String.format("%s_%s_%s_%s%s", 
-					            				dto.getTipoPet(),
-					            				petReal.nomeFormatado(), 
-					            				registro.dataFormatada(), 
-					            				registro.localFormatado(), extensao);
+            String novoNome = String.format("%s_%s%s", 
+					            				dto.getNome().replace(' ', '-'),
+					            				novaPerda.getPerdaId(), extensao);
 
             Path path = Paths.get(UPLOAD_DIR + novoNome);
             Files.write(path, imagem.getBytes());
 
-            model.addAttribute("mensagem", "Upload de '" + novoNome + "' realizado com sucesso!");
+            model.addAttribute("mensagem", "Registro de perda '" + novoNome + "' realizado com sucesso!");
         }
 
         return index(model);
@@ -91,5 +88,43 @@ public class PetController {
                     .collect(Collectors.toList());
         }
     }
+
+    @GetMapping("/api/perdas/termos")
+    @ResponseBody // Retorna JSON em vez de HTML
+    public List<RegistroPerdaDTO> buscar(@RequestParam("termo") String termo) {
+    	
+        // 2. Buscar no banco
+        List<RegistroPerdaDTO> resultados = petDataService.buscarPerdasPorTermos(termo);
+
+        return resultados;
+    }
+
+    @GetMapping("/api/perda/find")
+    @ResponseBody // Retorna JSON em vez de HTML
+    public RegistroPerdaDTO consultar(@RequestParam("id") int id) throws IOException {
+    	
+    	var retornoDTO = petDataService.buscarPerdaPorId(id);
+    	
+    	if (retornoDTO != null)
+    	{
+	        File dir = new File(UPLOAD_DIR);
+	        if (!dir.exists()) return new RegistroPerdaDTO();
+
+	        try (var stream = Files.list(Paths.get(UPLOAD_DIR))) {
+	            var img = stream
+	                    .map(path -> path.getFileName().toString())
+	                    .filter(nome -> nome.contains(String.valueOf(id)))
+	                    .findFirst();
+	            if (!img.isEmpty())
+	            	retornoDTO.setUrlImagem(img.toString());
+	        }  	
+
+	        return retornoDTO;
+    	}
+    	else
+    		return new RegistroPerdaDTO();
+
+    }
+
 
 }

@@ -8,8 +8,12 @@ public class PetFactory {
 
     public static Pet criarPet(RegistroPerdaDTO dto) {
         LocalDate nascimento = LocalDate.parse(dto.getDataNascimento());
-        String tipo = dto.getTipoPet().toUpperCase();
-
+        String tipo = "";
+        for (EnumEspeciesConhecidas s : EnumEspeciesConhecidas.values()) {
+            if (s.getCodigo() == dto.getEspecieId()) {
+            	tipo =  s.name();
+            }
+        }
         return switch (tipo) {
             case "CAO" -> new Cao(
                 dto.getNome(), 
@@ -21,21 +25,21 @@ public class PetFactory {
             case "AVE" -> new Ave(
                 dto.getNome(), 
                 nascimento, 
-                dto.getEspecie(), 
-                dto.getTipoVoo() // Atributo vindo do DTO
+                String.valueOf(dto.getEspecieId()), 
+                dto.isVoador() ? "voa" : "não voa" // Atributo vindo do DTO
             );
             
             case "REPTIL" -> new Reptil(
                 dto.getNome(), 
                 nascimento, 
-                dto.getEspecie(), 
+                String.valueOf(dto.getEspecieId()), 
                 dto.isRastejante()
             );
             
             default -> new OutrosPet(
                 dto.getNome(), 
                 nascimento, 
-                dto.getEspecie()
+                String.valueOf(dto.getEspecieId())
             );
         };
     }
